@@ -15,6 +15,9 @@ n2 = 0
 
 os.system("mode con: cols=57 lines=28")
 os.system("title The Ultimate Python Calculator by DeveloperKartik")
+os.system("title The Ultimate Python Calculator by DeveloperKartik")
+os.system("title The Ultimate Python Calculator by DeveloperKartik")
+os.system("title The Ultimate Python Calculator by DeveloperKartik")
 
 # Converting temp scales
 # @app.command(short_help="Basic Calculations")
@@ -291,6 +294,7 @@ def f3():
 
 # Main Code
 def maincode():
+    os.system("title The Ultimate Python Calculator by DeveloperKartik")
     from colorama import Fore, Back, Style
     import time
     import os
