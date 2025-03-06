@@ -2,7 +2,7 @@
 
 
 
-
+![image](https://github.com/user-attachments/assets/a8f5d986-0a04-4c83-807b-380872decc33)
 
 
 # CLIculator (Previosly UltimatePythonCalculator)
