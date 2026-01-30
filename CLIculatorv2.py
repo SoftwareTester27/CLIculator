@@ -2,116 +2,158 @@
 from colorama import Fore, Back, Style
 import colorama
 from rich.console import Console
-from rich.table import Table
-from rich.text import Text
 from rich.traceback import install
 import webbrowser
+from rich.panel import Panel
 import os
 import time
+import sys
+import re
+import codecs
 install()
 
+# Try to set the encoding for stdout to UTF-8
+try:
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.detach())
+except Exception:
+    pass # Fallback if already wrapped or not applicable
+
 console = Console()
-
-text = Text()
-text.append("This is a sample text with ", style="default")
-text.append("/forward/", style="default")
-text.append("slashes/", style="default")
-
-console.print(text)
 
 # Defining variables to avoid errors
 ans = 0
 uc = 'x'
 n1 = 0
 n2 = 0
+csb = [(70, 180, 240), (70, 180, 240)]
 
-os.system("mode con: cols=134 lines=40")
-os.system('title "                                                                                                                                            CLIculator                                                                                                           "')
+os.system("mode con: cols=132 lines=40")
+os.system('title " CLIculatorv2 "')
 
-def rgb_to_ansi256(r, g, b):
-    """Convert RGB to the closest ANSI 256-color code."""
-    return 16 + (36 * (r // 51)) + (6 * (g // 51)) + (b // 51)
+colorama.init()
 
-def apply_smooth_gradient(text, start_color, end_color):
-    """Applies a smooth left-to-right gradient using ANSI 256 colors."""
-    gradient_text = ""
-    length = len(text)
+def rgb(r, g, b, text):
+    return f"\033[38;2;{r};{g};{b}m{text}\033[0m"
 
-    for i, char in enumerate(text):
-        factor = i / max(length - 1, 1)  # Normalize factor from 0 to 1
-        r = int(start_color[0] + (end_color[0] - start_color[0]) * factor)
-        g = int(start_color[1] + (end_color[1] - start_color[1]) * factor)
-        b = int(start_color[2] + (end_color[2] - start_color[2]) * factor)
+def pgl(lines, colors, delay=0.06):
+    if len(colors) < 2:
+        raise ValueError("Need at least 2 colors")
 
-        ansi_code = rgb_to_ansi256(r, g, b)
-        gradient_text += f"\033[38;5;{ansi_code}m{char}"  # Apply color per character
+    total_lines = len(lines)
+    segments = len(colors) - 1
 
-    gradient_text += "\033[0m"  # Reset color
-    return gradient_text
+    for i, line in enumerate(lines):
+        pos = i / max(total_lines - 1, 1)
+        seg = min(int(pos * segments), segments - 1)
 
+        start = colors[seg]
+        end = colors[seg + 1]
 
-# Converting temp scales
-def gradient_title(title_lines, colors):
-    colorama.init()
-    num_lines = len(title_lines)
-    num_segments = len(colors) - 1  # Number of color transitions
-    segment_size = max(1, num_lines // num_segments)  # Avoid division errors
+        local_pos = (pos - seg / segments) * segments
 
-    for i, line in enumerate(title_lines):
-        # Find which color segment we are in
-        segment = min(i // segment_size, num_segments - 1)
-        start_rgb = colors[segment]
-        end_rgb = colors[segment + 1]
-        
-        # Interpolate colors within the segment
-        factor = (i % segment_size) / max(1, segment_size - 1)
-        r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * factor)
-        g = int(start_rgb[1] + (end_rgb[1] - start_rgb[1]) * factor)
-        b = int(start_rgb[2] + (end_rgb[2] - start_rgb[2]) * factor)
+        r = int(start[0] + (end[0] - start[0]) * local_pos)
+        g = int(start[1] + (end[1] - start[1]) * local_pos)
+        b = int(start[2] + (end[2] - start[2]) * local_pos)
 
-        # Apply ANSI color
-        color_code = f"\033[38;2;{r};{g};{b}m"
-        print(color_code + line + Style.RESET_ALL)
+        sys.stdout.write(rgb(r, g, b, line) + "\n")
+        sys.stdout.flush()      # 👈 THIS is the magic
+        time.sleep(delay)
 
-# Your title as a list of lines
 title_lines = [
-    "                     ┌──────────────────────────────────────────────────────────────────────────────────────────┐                     ",
-    "                     │                                                                                          │                     ",
-    "                     │     ▄████▄   ██▓     ██▓ ▄████▄   █    ██  ██▓    ▄▄▄     ▄▄▄█████▓ ▒█████   ██▀███      │                     ",
-    "                     │    ▒██▀ ▀█  ▓██▒    ▓██▒▒██▀ ▀█   ██  ▓██▒▓██▒   ▒████▄   ▓  ██▒ ▓▒▒██▒  ██▒▓██ ▒ ██▒    │                     ",
-    "                     │    ▒▓█    ▄ ▒██░    ▒██▒▒▓█    ▄ ▓██  ▒██░▒██░   ▒██  ▀█▄ ▒ ▓██░ ▒░▒██░  ██▒▓██ ░▄█ ▒    │                     ",
-    "                     │    ▒▓▓▄ ▄██▒▒██░    ░██░▒▓▓▄ ▄██▒▓▓█  ░██░▒██░   ░██▄▄▄▄██░ ▓██▓ ░ ▒██   ██░▒██▀▀█▄      │                     ",
-    "                     │    ▒ ▓███▀ ░░██████▒░██░▒ ▓███▀ ░▒▒█████▓ ░██████▒▓█   ▓██▒ ▒██▒ ░ ░ ████▓▒░░██▓ ▒██▒    │                     ",
-    "                     │    ░ ░▒ ▒  ░░ ▒░▓  ░░▓  ░ ░▒ ▒  ░░▒▓▒ ▒ ▒ ░ ▒░▓  ░▒▒   ▓▒█░ ▒ ░░   ░ ▒░▒░▒░ ░ ▒▓ ░▒▓░    │                     ",
-    "                     │                                       [DeveloperKartik]                                  ├──┐                  ",
-    "                     └──────────────────────────────────────────────────────────────────────────────────────────┘  │                  ",
-    "                                                                                                                   │                  ",
-    Fore.LIGHTRED_EX + "                  ┌────────────[" + Fore.LIGHTRED_EX + "x" + Fore.LIGHTRED_EX + "] Exit─────────────────────────[" + Fore.LIGHTRED_EX + "?" + Fore.LIGHTRED_EX + "] Help──────────────────────────────[" + Fore.LIGHTRED_EX + "S" + Fore.LIGHTRED_EX + "] Support──┘",
-    Fore.LIGHTRED_EX + "                  │                  ",
-    Fore.LIGHTRED_EX + "                  └─┬────────────────────────────────"
+    "     ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐",
+    "     │                                                                                                               │",
+    "     │     ______     __         __     ______     __  __     __         ______     ______   ______     ______       │",
+    "     │    /\  ___\   /\ \       /\ \   /\  ___\   /\ \/\ \   /\ \       /\  __ \   /\__  _\ /\  __ \   /\  == \      │",
+    "     │    \ \ \____  \ \ \____  \ \ \  \ \ \____  \ \ \_\ \  \ \ \____  \ \  __ \  \/_/\ \/ \ \ \/\ \  \ \  __<      │",
+    "     │     \ \_____\  \ \_____\  \ \_\  \ \_____\  \ \_____\  \ \_____\  \ \_\ \_\    \ \_\  \ \_____\  \ \_\ \_\    │",
+    "     │      \/_____/   \/_____/   \/_/   \/_____/   \/_____/   \/_____/   \/_/\/_/     \/_/   \/_____/   \/_/ /_/ v2 │",
+    "     │                                                                                                               │",
+    "     │    By [DeveloperKartik]                                                                                       │",
+    "  ┌──┤                                                                                                               ├──┐",
+    "  │  └───────────────────────────────────────────────────────────────────────────────────────────────────────────────┘  │",
+    "  │                                                                                                                     │",
+    "  └─────────────────┬──────────────────────────────────────────────┬─────────────────────────────────────────────┬──────┘"
 ]
 
-# [" + Fore.LIGHTRED_EX + "x" + Fore.LIGHTRED_EX + "] Exit │ [" + Fore.LIGHTRED_EX + "?" + Fore.LIGHTRED_EX + "] Help │ [" + Fore.LIGHTRED_EX + "S" + Fore.LIGHTRED_EX + "] 😎 Support        │                  |  _  | |_| | |  | | |___")
-#     print("                     ├──────┬───┴──────────┴───────────────────────┤                  |_| |_|\___/|_|  |_|_____|")
-#     print("                     │ [" + Fore.LIGHTRED_EX + "/1" + Fore.LIGHTRED_EX + "] | Basic Calculations                   │                  ")
-#     print("                     ├──────┼──────────────────────────────────────┤")
-#     print("                     │ [" + Fore.LIGHTRED_EX + "/2" + Fore.LIGHTRED_EX + "] | Calculate area and perimeter of      │")
-#     print("                     │      | various shapes                       │")
-#     print("                     ├──────┼──────────────────────────────────────┤")
-#     print("                     │ [" + Fore.LIGHTRED_EX + "/3" + Fore.LIGHTRED_EX + "] | Calculate Percentage of a number     │")
-#     print("                     ├──────┼──────────────────────────────────────┤")
-#     print("                     │ [" + Fore.LIGHTRED_EX + "/4" + Fore.LIGHTRED_EX + "] | Check if number is Odd or Even       │")
-#     print("                     ├──────┼──────────────────────────────────────┤")
-#     print("                     │ [" + Fore.LIGHTRED_EX + "/5" + Fore.LIGHTRED_EX + "] | Change Temperature Units
+import re
 
-# @app.command(short_help="Basic Calculations")
+ucresult = ""
+
+def format_bodmas_expression():
+    expr = input(Fore.LIGHTRED_EX + "                    ├─►").replace(" ", "")
+    
+    if '(' in expr or ')' in expr:
+        return evaluate_expression(expr)
+
+    tokens = re.findall(r'\d+\.?\d*|[+\-*/]', expr)
+    precedence = {'+': 1, '-': 1, '*': 2, '/': 2}
+    
+    def to_bracketed(tokens):
+        def higher_precedence(op1, op2):
+            return precedence[op1] >= precedence[op2]
+
+        output = []
+        ops = []
+
+        def pop_and_build():
+            if len(output) < 2:
+                print("")
+                print("                    String Error: not enough operands.")
+                print("")
+                return
+            op = ops.pop()
+            b = output.pop()
+            a = output.pop()
+            output.append(f"({a} {op} {b})")
+
+        for token in tokens:
+            if token in precedence:
+                while ops and higher_precedence(ops[-1], token):
+                    pop_and_build()
+                ops.append(token)
+            else:
+                output.append(token)
+
+        while ops:
+            pop_and_build()
+
+        if output:
+            return output[0]
+        else:
+            return None
+
+    ucresult = to_bracketed(tokens)
+
+    if ucresult is None:
+        print("Error: Failed to create a bracketed expression.")
+        return None
+    return evaluate_expression(ucresult)
+
+def evaluate_expression(expr):
+    if not isinstance(expr, str):
+        # print("Error: expression must be a string.")
+        return None
+    try:
+        ucresult = eval(expr)
+        print("                    │")
+        print("                    └─Result is►", ucresult)
+        print("")
+        return ucresult
+    except Exception as e:
+        print("                    └─Error during evaluation► \n", e)
+        return None
+
+colors = [(0, 120, 212), (50, 150, 230), (70, 180, 240)]
+
 def f5():
     print(end="\033c", flush=True)
     print(" ")
-    gradient_title(title_lines, (128, 0, 128), (0, 255, 255))
+    # gradient_title(title_lines, [(107, 7, 247), (247, 7, 203), (255, 0, 102)])
+    pgl(title_lines, colors, delay=0.05)
     print("     ")
     print("     ")
-    print(Fore.LIGHTRED_EX +"     ╭──────┬──────────────────────────────────────╮")
+    print(Fore.LIGHTRED_EX +"     ┌──────┬──────────────────────────────────────╮")
     print("     │  Id  |               Function               │")
     print("     ├─────────────────────────────────────────────┤")
     print("     │ [" + Fore.LIGHTRED_EX + "<" + Fore.LIGHTRED_EX + "]  Go Back                                │")
@@ -121,9 +163,9 @@ def f5():
     print("     │ [" + Fore.LIGHTRED_EX + "F" + Fore.LIGHTRED_EX + "]  | Farenhiet to Celsius                 │")
     print("     ├──────┴──────────────────────────────────────╯")
     print("     │")
-    tans = input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─ID>")
+    tans = input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─ID►")
     print("     │")
-    ideg = int(input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─Number>"))
+    ideg = int(input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─Number►"))
     if tans == 'c' or tans == 'C':
         degree = ideg * 1.8 + 32
         print(" ")
@@ -146,15 +188,15 @@ def f5():
 def f4():
     print(end="\033c", flush=True)
     print(" ")
-    gradient_title(title_lines, [(255, 102, 0), (255, 51, 51), (255, 0, 102)])    
+    pgl(title_lines, colors, delay=0.05)
     print("     ")
-    print(Fore.LIGHTRED_EX +"     ╭─────────────────────────────────────────────╮")
+    print(Fore.LIGHTRED_EX +"     ┌─────────────────────────────────────────────╮")
     print("     │                 Odd or Even                 │")
     print("     ├─────────────────────────────────────────────┤")
     print("     │ [" + Fore.LIGHTRED_EX + "<" + Fore.LIGHTRED_EX + "]  Go Back                                │")
     print("     ├─────────────────────────────────────────────╯")
     print("     │")
-    ooe = int(input(Style.BRIGHT +"     ╰─Number to calculate> "))
+    ooe = int(input(Style.BRIGHT +"     ╰─Number to calculate► "))
 
     if ooe % 2 == 0:
         print(Style.BRIGHT + "     Number is even")
@@ -176,82 +218,99 @@ def f1():
     print(end="\033c", flush=True)
     ans = 0
     uc = 0
+    # gradient_title(title_lines, [(107, 7, 247), (247, 7, 203), (255, 0, 102)])
     print("")
-    gradient_title(title_lines, [(255, 102, 0), (255, 51, 51), (255, 0, 102)])                                                                                                                      
-    print("     ")
-    print("     ")
-    print(Fore.LIGHTRED_EX +"     ╭─────────────────────────────────────────────╮")
-    print("     │             Basic Calculations              │")
-    print("     ├─────────────────────────────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "<" + Fore.LIGHTRED_EX + "]  Go Back                                │")
-    print("     ├──────┬──────────────────────────────────────┤")
-    print("     │  Id  |               Function               │")
-    print("     ├──────┼──────────────────────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "+" + Fore.LIGHTRED_EX + "]  | Addition                             │")
-    print("     ├──────┼──────────────────────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "-" + Fore.LIGHTRED_EX + "]  | Subtraction                          │")
-    print("     ├──────┼──────────────────────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "*" + Fore.LIGHTRED_EX + "]  | Multiplication                       │")
-    print("     ├──────┼──────────────────────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "/" + Fore.LIGHTRED_EX + "]  | Division                             │")
-    print("     ├──────┴──────────────────────────────────────╯")
-    print("     │")
-    uc = 0
-    uc = input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─ID>")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    pgl(title_lines, colors, delay=0.05)
 
-    if uc == "+" or uc == "-" or uc == "*" or uc == "/" or uc == "<":
-        if uc == '+':
-            print("     Selected: Addition")
-        elif uc == '-':
-            print("     Selected: Subtraction")
-        elif uc == '*':
-            print("     Selected: Multiplication")
-        elif uc == '/':
-            print("     Selected: Division")
-        elif uc == '<':
-            print(end="\033c", flush=True)
-            maincode()
-    else:
-        print(" ")
-        print(Fore.RED + Style.BRIGHT + "     Invalid Choice")
-        print(" ")
-        input(Style.BRIGHT + Fore.MAGENTA + "     Press Enter ←╯ to rerun")
-        # Calling Maincode
+    linesoff1 = [
+        "                    │                                     Basic Calculations                                       │",
+        "                    ├──────────────────────────────────────────────┼───────────────────────────────────────────────┤",
+        "                    ├─[+] Addition                                 ├─[<] Go Back",
+        "                    │                                              │",
+        "                    ├─[-] Subtraction                              └─[x] Exit    ❌",
+        "                    │",
+        "                    ├─[*] Multiplication",
+        "                    │",
+        "                    ├─[/] Division",
+        "                    │"
+    ]
+    pgl(linesoff1, csb, delay=0.05)
+    # uc = input(Fore.LIGHTRED_EX + Style.BRIGHT + "                    └─►")
+    ucresult = format_bodmas_expression()
+
+    evaluate_expression(ucresult)
+
+    # if uc == "+" or uc == "-" or uc == "*" or uc == "/" or uc == "<":
+    #     if uc == '+':
+    #         print("     Selected: Addition")
+    #     elif uc == '-':
+    #         print("     Selected: Subtraction")
+    #     elif uc == '*':
+    #         print("     Selected: Multiplication")
+    #     elif uc == '/':
+    #         print("     Selected: Division")
+    #     elif uc == '<':
+    #         print(end="\033c", flush=True)
+    #         maincode()
+    # else:
+    #     print(" ")
+    #     print(Fore.RED + Style.BRIGHT + "     Invalid Choice")
+    #     print(" ")
+    #     input(Style.BRIGHT + Fore.MAGENTA + "     Press Enter ←╯ to rerun")
+    #     # Calling Maincode
+    #     print(end="\033c", flush=True)
+    #     maincode()
+    
+    # print("     │")
+
+    # n1 = input(Style.BRIGHT + "     ╰─First Number►")
+
+    # if n1 == "":
+    #     n1 = 0
+    #     print("     No input detected, using 0 as default.")
+    # n1 = int(n1)
+
+    # print("     │")
+
+    # n2 = input("     ╰─Second Number►")
+    # if n2 == "":
+    #     n2 = 0
+    #     print("     No input detected, using 0 as default.")
+
+    # n2 = int(n2)
+    # print(" ")
+
+    # if uc == '+':
+    #     ans = n1 + n2
+    # elif uc == '-':
+    #     ans = n1 - n2
+    # elif uc == '*':
+    #     ans = n1 * n2
+    # elif uc == '/':
+    #     ans = n1 / n2
+
+    # print(Style.BRIGHT + "     The requested answer is: " + Fore.CYAN + str(ans))
+    print(" ")
+    fiff1 = input(Style.BRIGHT + Fore.LIGHTGREEN_EX + "                    Press 'Enter ◄─┘' to enter again or press '<' to go back ► ")
+    if fiff1 == '<':
         print(end="\033c", flush=True)
         maincode()
-
-    print("     │")
-
-    n1 = int(input(Style.BRIGHT + "     ╰─First Number>"))
-    print("     │")
-    n2 = int(input("     ╰─Second Number>"))
-    print(" ")
-
-    if uc == '+':
-        ans = n1 + n2
-    elif uc == '-':
-        ans = n1 - n2
-    elif uc == '*':
-        ans = n1 * n2
-    elif uc == '/':
-        ans = n1 / n2
-
-    print(Style.BRIGHT + "     The requested answer is: " + Fore.CYAN + str(ans))
-    print(" ")
-    input(Style.BRIGHT + Fore.MAGENTA + "       Press Enter ←╯ to rerun")
-    # Calling Maincode
-    print(end="\033c", flush=True)
-    maincode()
+    elif fiff1 == '':
+        print(end="\033c", flush=True)
+        f1()
 
 # Code For calculating area and perimeter
 def f2():
     import math
     print(end="\033c", flush=True)
-    print("")
-    gradient_title(title_lines, [(255, 102, 0), (255, 51, 51), (255, 0, 102)])                                                                                                                        
-    print("     ")
-    print("     ")
-    print(Fore.LIGHTRED_EX +"     ╭─────────────────────────────────────────────╮")
+    pgl(title_lines, colors, delay=0.05)
+    print(Fore.LIGHTRED_EX +"     ┌─────────────────────────────────────────────╮")
     print("     │               Area Calculator               │")
     print("     ├─────────────────────────────────────────────┤")
     print("     │ [" + Fore.LIGHTRED_EX + "<" + Fore.LIGHTRED_EX + "]  Go Back                                │")
@@ -267,7 +326,7 @@ def f2():
     print("     │ [" + Fore.LIGHTRED_EX + "4" + Fore.LIGHTRED_EX + "]  | Triangle                             │")
     print("     ├──────┴──────────────────────────────────────╯")
     print("     │")
-    uf = input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─ID> ")
+    uf = input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─ID► ")
     # console = Console()
     # console.print(table)
     # print(" ")
@@ -330,55 +389,58 @@ def f2():
 def f3():
     print(end="\033c", flush=True)
     print(" ")
-    gradient_title(title_lines, [(255, 102, 0), (255, 51, 51), (255, 0, 102)])                                                                                                                        
     print("     ")
     print("     ")
-    print(Fore.LIGHTRED_EX +"     ╭─────────────────────────────────────────────╮")
-    print("     │            Percentage Calculator            │")
-    print("     ├──────────┬──────────┬───────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "x" + Fore.LIGHTRED_EX + "] Exit │ [" + Fore.LIGHTRED_EX + "?" + Fore.LIGHTRED_EX + "] Help │ [" + Fore.LIGHTRED_EX + "S" + Fore.LIGHTRED_EX + "] 😎 Support        │")
-    print("     ├──────────┴──────────┴───────────────────────╯")
-    print("     │")
+    linesoff1 = [
+        "     ┌─────────────────────────────────────────────╮",
+        "     │            Percentage Calculator            │",
+        "     ├──────────┬──────────┬───────────────────────┤",
+        "     │ [x] Exit │ [?] Help │ [S] Support           │",
+        "     ├──────────┴──────────┴───────────────────────╯",
+        "     │",
+    ]
+    pgl(title_lines, colors, delay=0.05)
+    pgl(linesoff1, csb, delay=0.05)
 
-    ntcp = input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─> ___ is what percent of ")
+    ntcp = input(Fore.LIGHTRED_EX + Style.BRIGHT + "     ╰─► ___ is what percent of ")
     if ntcp == "x":
         quit()
 
     print(end="\033c", flush=True)
 
     print(" ")
-    gradient_title(title_lines, [(255, 102, 0), (255, 51, 51), (255, 0, 102)])                                                                                                                       
+    pgl(title_lines, colors, delay=0.05)                                                                                                   
     print(Fore.LIGHTRED_EX +"     ")
     print("     ")
-    print("     ╭──────────────────────────────────────────────╮")
+    print("     ┌─────────────────────────────────────────────╮")
     print("     │            Percentage Calculator            │")
     print("     ├──────────┬──────────┬───────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "x" + Fore.LIGHTRED_EX + "] Exit │ [" + Fore.LIGHTRED_EX + "?" + Fore.LIGHTRED_EX + "] Help │ [" + Fore.LIGHTRED_EX + "S" + Fore.LIGHTRED_EX + "] 😎 Support        │")
+    print("     │ [x] Exit │ [?] Help │ [S] Support           │")
     print("     ├──────────┴──────────┴───────────────────────╯")
     print("     │")
 
-    ul = f"     ╰─> {ntcp} is what percent of "
+    ul = f"     ╰─► {ntcp} is what percent of "
     nfrom = input(ul)
 
     print(end="\033c", flush=True)
 
     print(" ")
-    gradient_title(title_lines, [(255, 102, 0), (255, 51, 51), (255, 0, 102)])                                                                                                                       
+    pgl(title_lines, colors, delay=0.05)                                                                                                     
+    print(Fore.LIGHTRED_EX +"     ")
     print("     ")
-    print("     ")
-    print("     ╭─────────────────────────────────────────────╮")
+    print("     ┌─────────────────────────────────────────────╮")
     print("     │            Percentage Calculator            │")
     print("     ├──────────┬──────────┬───────────────────────┤")
-    print("     │ [" + Fore.LIGHTRED_EX + "x" + Fore.LIGHTRED_EX + "] Exit │ [" + Fore.LIGHTRED_EX + "?" + Fore.LIGHTRED_EX + "] Help │ [" + Fore.LIGHTRED_EX + "S" + Fore.LIGHTRED_EX + "] 😎 Support        │")
+    print("     │ [x] Exit │ [?] Help │ [S] Support           │")
     print("     ├──────────┴──────────┴───────────────────────╯")
     print("     │")
-    print(f"     ├─> {ntcp} is what percent of {nfrom}")
+    print(f"     ├─► {ntcp} is what percent of {nfrom}")
     print(" ")
 
-    result = int(ntcp) / int(nfrom) * 100
+    result = (int(ntcp) / int(nfrom)) * 100
 
     print(Style.BRIGHT + f"     {ntcp} is {result} percent of {nfrom}")
-    input(Fore.MAGENTA + Style.BRIGHT + "     Press Enter ←╯ to go back")
+    input(Fore.LIGHTGREEN_EX + Style.BRIGHT + "     Press Enter ←╯ to go back")
 
     # Calling Maincode
     print(end="\033c", flush=True)
@@ -386,116 +448,95 @@ def f3():
 
 # Main Code
 def maincode():
-    print(" ")
-    # console.print("                                             ╔╦╗┌─┐┬  ┬┌─┐┬  ┌─┐┌─┐┌─┐┬─┐╦╔═┌─┐┬─┐┌┬┐┬┬┌─┌─┐", style="bold rgb(177,252,200)")
-    # console.print("                                              ║║├┤ └┐┌┘├┤ │  │ │├─┘├┤ ├┬┘╠╩╗├─┤├┬┘ │ │├┴┐└─┐", style="bold rgb(165,252,191)")
-    # console.print("                                             ═╩╝└─┘ └┘ └─┘┴─┘└─┘┴  └─┘┴└─╩ ╩┴ ┴┴└─ ┴ ┴┴ ┴└─┘", style="bold rgb(148,233,174)")
-    # console.print("      ________  ___       ___  ________  ___  ___  ___       ________  _________  ________  ________  ___      ___  _______      ", style="bold #FF0000")
-    # console.print("     |\   ____\|\  \     |\  \|\   ____\|\  \|\  \|\  \     |\   __  \|\___   __\|\   __  \|\   __  \|\  \    /  /|/  ___  \     ", style="bold #FE6900")
-    # console.print("     \ \  \___|\ \  \    \ \  \ \  \___|\ \  \ \  \ \  \    \ \  \|\  \|___ \  \_\ \  \|\  \ \  \|\  \ \  \  /  / /__/|_/  /|    ", style="bold #FEE400")
-    # console.print("      \ \  \    \ \  \    \ \  \ \  \    \ \  \ \  \ \  \    \ \   __  \   \ \  \ \ \  \ \  \ \   _  _\ \  \/  / /|__|//  / /    ", style="bold #2BFE00")
-    # console.print("       \ \  \____\ \  \____\ \  \ \  \____\ \  \ \  \ \  \____\ \  \ \  \   \ \  \ \ \  \ \  \ \  \ \  \ \    / /     /  /_/__   ", style="bold #00BAFE")
-    # console.print("        \ \_______\ \_______\ \__\ \_______\ \_______\ \_______\ \__\ \__\   \ \__\ \ \_______\ \__\ \ _\ \__/ /     |\________\ ", style="bold #004DFE")
-    # console.print("         \|_______|\|_______|\|__|\|_______|\|_______|\|_______|\|__|\|__|    \|__|  \|_______|\|__|\|__|\|__|/       \|_______| ", style="bold #4900FE")                                                                                                                       
 
-    gradient_title(title_lines, [(255, 102, 0), (255, 51, 51), (255, 0, 102)])
-    # for line in title_lines:
-    #     print(apply_smooth_gradient(line, (255, 102, 0), (255, 0, 102)))
-    # gradient_title(title_lines, (138, 43, 226), (0, 206, 209), (255, 0, 255))
-    print(Fore.LIGHTRED_EX + """
-                    │
-                    ├─[1] Basic Calculations
-                    │
-                    ├─[2] Calculate area and perimeter of various shapes
-                    │
-                    ├─[3] Calculate Percentage of a number
-                    │
-                    ├─[4] Check if number is Odd or Even
-                    │
-                    ├─[5] Change Temperature Units
-                    │""")
-    # print(Fore.LIGHTRED_EX + "                     ┌──────┬──────────────────────────────────────╮                   _   _  ___  __  __ _____ ")
-    # print("                     │  Id  |               Function               │                  | | | |/ _ \|  \/  | ____|")
-    # print("                     ├──────┴───┬──────────┬───────────────────────┤                  | |_| | | | | |\/| |  _| ")
-    # print("                     │ [" + Fore.LIGHTRED_EX + "x" + Fore.LIGHTRED_EX + "] Exit │ [" + Fore.LIGHTRED_EX + "?" + Fore.LIGHTRED_EX + "] Help │ [" + Fore.LIGHTRED_EX + "S" + Fore.LIGHTRED_EX + "] 😎 Support        │                  |  _  | |_| | |  | | |___")
-    # print("                     ├──────┬───┴──────────┴───────────────────────┤                  |_| |_|\___/|_|  |_|_____|")
-    # print("                     │ [" + Fore.LIGHTRED_EX + "/1" + Fore.LIGHTRED_EX + "] | Basic Calculations                   │                  ")
-    # print("                     ├──────┼──────────────────────────────────────┤")
-    # print("                     │ [" + Fore.LIGHTRED_EX + "/2" + Fore.LIGHTRED_EX + "] | Calculate area and perimeter of      │")
-    # print("                     │      | various shapes                       │")
-    # print("                     ├──────┼──────────────────────────────────────┤")
-    # print("                     │ [" + Fore.LIGHTRED_EX + "/3" + Fore.LIGHTRED_EX + "] | Calculate Percentage of a number     │")
-    # print("                     ├──────┼──────────────────────────────────────┤")
-    # print("                     │ [" + Fore.LIGHTRED_EX + "/4" + Fore.LIGHTRED_EX + "] | Check if number is Odd or Even       │")
-    # print("                     ├──────┼──────────────────────────────────────┤")
-    # print("                     │ [" + Fore.LIGHTRED_EX + "/5" + Fore.LIGHTRED_EX + "] | Change Temperature Units             │")
-    # print("                     ├──────┴──────────────────────────────────────╯")
-    # print("                     │")
+    print("")
+    print("")
+    print("")
+    print("")
+
+    linesoff1 = [
+        "                    │                                             Home                                           │",
+        "                    ├──────────────────────────────────────────────┼─────────────────────────────────────────────┘",
+        "                    ├─[1] Basic Calculations                       ├─[x] Exit    ❌",
+        "                    │                                              │",
+        "                    ├─[2] Calculate area and perimeter of shapes   ├─[?] Help    ❓",
+        "                    │                                              │",
+        "                    ├─[3] Calculate Percentage of a number         └─[S] Support 🤍",
+        "                    │",
+        "                    ├─[4] Check if number is Odd or Even",
+        "                    │",
+        "                    ├─[5] Change Temperature Units",
+        "                    │"
+    ]
+    pgl(title_lines, colors, delay=0.05)
+    pgl(linesoff1, csb, delay=0.05)
     uc = 0
-    uc = input(Fore.LIGHTRED_EX + Style.BRIGHT + "                    └─>")
-    # print(" ")
-    # table = Table(title="     Function Table:", style="cyan")
-    # table.add_column("Id", style="red", justify="center")
-    # table.add_column("Function", style="green")
-    # table.add_row("/1", "Basic Calculations")
-    # table.add_row("/2", "Calculate area and perimeter of various shapeaas")
-    # table.add_row("/3", "Calculate Percentage of a number")
-    # table.add_row("/4", "Check if number is Odd or Even")
-    # table.add_row("/5", "Change Temperature Units")
-    # table.add_row("r", "Re-runs the program")
-    # table.add_row("x", "Exit the program")
-    # table.add_row("?", "For list of commands")
-    # console = Console()
-    # console.print(table)
+    uc = input("                    └─►")
 
-    if uc == '/1':
-        f1()
-    elif uc == '/2':
-        f2()
-    elif uc == '/3':
-        f3()
-    elif uc == '/4':
-        f4()
-    elif uc == '/5':
-        f5()
-    elif uc == 'THEBESTWEBSITEEVER':
-        print(end="\033c", flush=True)
-        # Calling Maincode
-        # maincode()
-        webbrowser.open('https://softwaretester27.github.io/learnscratch3/Index.html')
-        maincode()
-    elif uc == '?':
-        print(end="\033c", flush=True)
-        os.system("mode con: cols=134 lines=40")
-        print(" ")
-        print("     To use the program enter the id from the ")
-        print("     table given below corresponding to the ")
-        print("     function you want to perform.")
-        # Calling Maincode
-        maincode()
-        print(" ")
-    elif uc == 'x':
-        print(end="\033c", flush=True)
-        quit()
-    elif uc == 'S':
-        print(end="\033c", flush=True)
-        # Calling Maincode
-        # maincode()
-        webbrowser.open('https://github.com/SoftwareTester27')
-        maincode()
-    else:
-        secondstoend = 5
-        for number in range(5):
+    match uc:
+        case '1':
+            f1()
+        case '2':
+            f2()
+        case '3':
+            f3()
+        case '4':
+            f4()
+        case '5':
+            f5()
+        case 'THE-BEST-WEBSITE-EVER':
             print(end="\033c", flush=True)
-            print(f"     Invalid fact '{uc}'. Please Re-run to retry or enter '?' in the first input asked.")
-            print(f"     Restarting in {secondstoend} seconds...")
-            time.sleep(1)
-            secondstoend = secondstoend-1
-        
-        # Clearing the screen before calling maincode
-        print(end="\033c", flush=True)
-        # Calling Maincode
-        maincode()
+            # Calling Maincode
+            # maincode()
+            webbrowser.open('https://softwaretester27.github.io/learnscratch3/Index.html')
+            maincode()
+        case 'THE-WORST-WEBSITE-EVER':
+            print(end="\033c", flush=True)
+            # Calling Maincode
+            # maincode()
+            webbrowser.open('https://apple.com')
+            maincode()
+        case '?':
+            print(end="\033c", flush=True)
+            os.system("mode con: cols=134 lines=40")
+            print(" ")
+            print("     To use the program enter the id from the ")
+            print("     table given below corresponding to the ")
+            print("     function you want to perform.")
+            # Calling Maincode
+            maincode()
+            print(" ")
+        case 'x':
+            quit()
+        case 'S':
+            print(end="\033c", flush=True)
+            # Calling Maincode
+            # maincode()
+            webbrowser.open('https://github.com/SoftwareTester27')
+            maincode()
+        case _:
+            secondstoend = 5
+            for number in range(5):
+                print(end="\033c", flush=True)
+                print(f"     Invalid fact '{uc}'. Please Re-run to retry or enter '?' in the first input asked.")
+                print(f"     Restarting in {secondstoend} seconds...")
+                time.sleep(1)
+                secondstoend = secondstoend-1
+            
+            # Clearing the screen before calling maincode
+            print(end="\033c", flush=True)
+            # Calling Maincode
+            maincode()
+
 # Start the program
 print(end="\033c", flush=True)
-maincode()
+
+if __name__ == "__main__":
+    try:
+        maincode()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+    finally:
+        input("Press Enter to exit...") 
+        time.sleep(1000)
