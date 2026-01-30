@@ -4,6 +4,8 @@ Say goodbye to the drab default calculator haunting your command line—CLIculat
 
 ![CLIculator Demo](https://github.com/user-attachments/assets/957e5a8a-4827-4276-8061-981d0bcd5565)
 
+<img width="1439" height="899" alt="Screenshot 2026-01-16 090510" src="https://github.com/user-attachments/assets/2d88add9-ab95-4674-9a7a-4ae6d0707bcd" />
+
 ## 🌈 Why CLIculator Rocks
 
 Tired of that ugly, black-and-white cmd calculator that looks like it was designed in the stone age? CLIculator upgrades your terminal from boring to brilliant with:
